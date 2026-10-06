@@ -1,0 +1,47 @@
+name: SHAM countdown
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "preview — просмотр; create — создать пост; update — обновить"
+        type: choice
+        required: true
+        default: preview
+        options:
+          - preview
+          - create
+          - update
+  schedule:
+    - cron: '2/5 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sham-countdown
+  cancel-in-progress: false
+
+jobs:
+  countdown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Update countdown
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_MESSAGE_ID: ${{ vars.TELEGRAM_MESSAGE_ID }}
+          MODE: ${{ inputs.mode || 'update' }}
+        run: |
+          case "$MODE" in
+            preview) python countdown.py --preview ;;
+            create) python countdown.py --create ;;
+            update) python countdown.py ;;
+            *) exit 1 ;;
+          esac
